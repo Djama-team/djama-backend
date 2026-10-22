@@ -1,0 +1,16 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - run: dotnet restore tests/Djama.Tests/Djama.Tests.csproj
+      - run: dotnet build tests/Djama.Tests/Djama.Tests.csproj --no-restore -c Release
+      - run: dotnet test tests/Djama.Tests/Djama.Tests.csproj --no-build -c Release
