@@ -1,0 +1,54 @@
+# Djama - whole stack in one command:  docker compose up --build
+# Expected layout: the three repos side by side in one folder
+#   djama/djama-backend (this file)   djama/djama-frontend   djama/djama-docs
+name: djama
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: djama
+      POSTGRES_USER: djama
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-djama_dev}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"        # handy for DBeaver / local `dotnet run`
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U djama -d djama"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    mem_limit: 256m
+
+  api:
+    build:
+      context: .
+      dockerfile: src/Djama.Api/Dockerfile
+    restart: unless-stopped
+    environment:
+      ConnectionStrings__Default: Host=db;Port=5432;Database=djama;Username=djama;Password=${DB_PASSWORD:-djama_dev}
+      Jwt__Key: ${JWT_KEY:-dev-only-change-me-dev-only-change-me-32+}
+      Database__UseMigrations: ${USE_MIGRATIONS:-false}
+      Storage__Path: /app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads:/app/uploads         # photos, files and voice notes survive restarts
+    mem_limit: 512m
+
+  web:                                # React build served by nginx + reverse proxy to the API
+    build:
+      context: ../djama-frontend
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${WEB_PORT:-80}:80"
+    mem_limit: 128m
+
+volumes:
+  pgdata:
+  uploads:
