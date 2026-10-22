@@ -122,3 +122,6 @@ public class CallService(DjamaDbContext db, ChatService chat, IRealtimeNotifier 
         await rt.SendToUsersAsync(new[] { s.Other(userId) }, "CallSignal", new CallSignalEvent(callId, userId, kind, payload));
     }
 }
+
+
+// Amadou code
